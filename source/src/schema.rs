@@ -15,3 +15,12 @@ table! {
         world_clone -> Integer,
     }
 }
+
+table! {
+    users (id) {
+        id -> Integer,
+        username -> Text,
+        password -> Text,
+        session_key -> Text,
+    }
+}

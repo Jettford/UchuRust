@@ -1,0 +1,26 @@
+[package]
+name = "Uchu"
+version = "0.1.0"
+authors = ["lcdr"]
+edition = "2018"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/lcdr/world_server/"
+
+# This was started with the source made by lcdr
+# You can find that here https://github.com/lcdr/world_server/
+# That was under the AGPL-3.0-or-later license
+# This means I must, Include license, State significant changes, Disclose source and Include install instructions, cannot sublicense and or hold the license owner liable
+
+[dependencies]
+# Global Dependencies
+libsqlite3-sys = { version = "0.9.1", features = ["bundled"] }
+diesel = { version = "1.4.3", features = ["sqlite"] }
+lu_packets = { git = "https://github.com/lcdr/lu_packets", rev = "f11fdd7d50109602f7abdeacf78452376b9adbde" }
+base_server = { path = "../libraries/base_server", features = [] }
+minreq = { version = "2.1.1", features = [] }
+
+# Master Dependencies
+actix-web = "3"
+
+# Auth Dependencies
+bcrypt = "0.6"

@@ -17,19 +17,24 @@ use base_server::listeners::{on_conn_req, on_internal_ping, on_handshake};
 use base_server::server::Context as C;
 
 use crate::models::Character;
+
+use crate::utils::log;
+
 type Context = C<IncMessage, OutMessage>;
 
-pub struct MsgCallback {
+pub struct WorldMsgCallback {
 	validated: HashMap<SocketAddr, String>,
 	/// Connection to the users DB.
 	conn: SqliteConnection,
+
+	master_server_url: String,
 }
 
-impl MsgCallback {
+impl WorldMsgCallback {
 	/// Creates a new callback connecting to the DB at the provided path.
-	pub fn new(db_path: &str) -> Self {
+	pub fn new(db_path: &str, master_server_url: String) -> Self {
 		let conn = SqliteConnection::establish(db_path).unwrap();
-		Self { validated: HashMap::new(), conn }
+		Self { validated: HashMap::new(), conn, master_server_url }
 	}
 
 	/// Dispatches to the various handlers depending on message type.
@@ -43,7 +48,7 @@ impl MsgCallback {
 		match msg {
 			InternalPing(msg)                         => on_internal_ping::<IncMessage, OutMessage>(msg, ctx),
 			ConnectionRequest(msg)                    => on_conn_req::<IncMessage, OutMessage>(msg, ctx),
-			NewIncomingConnection(msg)                => { dbg!(msg); },
+			NewIncomingConnection(msg)                => { log("World", "New incoming connection") },
 			UserMessage(General(Handshake(msg)))      => on_handshake::<IncMessage, OutMessage>(msg, ctx, ServiceId::World),
 			UserMessage(World(ClientValidation(msg))) => self.on_client_val(msg, ctx),
 			UserMessage(World(msg))                   => self.on_restricted_msg(msg, ctx),
@@ -54,7 +59,7 @@ impl MsgCallback {
 	fn on_client_val(&mut self, cli_val: &ClientValidation, ctx: &mut Context) {
 		let username = String::from(&cli_val.username);
 		let session_key = String::from(&cli_val.session_key);
-		let resp = minreq::get(format!("http://localhost:21835/verify/{}/{}", username, session_key)).send().unwrap();
+		let resp = minreq::get(format!("http://{}/verify/{}/{}", self.master_server_url, username, session_key)).send().unwrap();
 		if resp.status_code != 200 {
 			eprintln!("Error {} when trying to verify {} {} with the auth server!", resp.status_code, username, session_key);
 			return;
@@ -71,10 +76,10 @@ impl MsgCallback {
 		dbg!(&msg);
 		let username = match self.validated.get(&ctx.peer_addr().unwrap()) {
 			None =>  {
-			println!("Restricted packet from unvalidated client!");
-			ctx.send(DisconnectNotify::InvalidSessionKey).unwrap();
-			ctx.close_conn();
-			return;
+				println!("Restricted packet from unvalidated client!");
+				ctx.send(DisconnectNotify::InvalidSessionKey).unwrap();
+				ctx.close_conn();
+				return;
 			}
 			Some(u) => u,
 		};
