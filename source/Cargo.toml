@@ -20,7 +20,7 @@ base_server = { path = "../libraries/base_server", features = [] }
 minreq = { version = "2.1.1", features = [] }
 
 # Master Dependencies
-actix-web = "3"
+rouille = "3.0.0"
 
 # Auth Dependencies
 bcrypt = "0.6"

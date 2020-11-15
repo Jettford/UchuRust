@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 
-use bcrypt;
+//use bcrypt;
 
 use diesel::prelude::*;
 

@@ -1,45 +1,49 @@
 pub(crate) mod server_mode;
 
-use actix_web::{get, web, App, HttpServer, Responder};
+#[macro_use]
 
-use server_mode::ServerMode;
+use rouille::*;
 
 use crate::utils::log;
-use diesel::{QueryDsl, TextExpressionMethods, SqliteConnection, Connection};
+use diesel::{QueryDsl, TextExpressionMethods, SqliteConnection};
 
 pub struct MasterServer {
     pub(crate) conn: SqliteConnection,
 }
 
 impl MasterServer {
-    #[actix_web::main]
-    pub async fn start(&self) -> std::io::Result<()> {
+    pub fn start(&self) -> std::io::Result<()> {
         log("Master", "Started master server");
 
-        #[get("/verify/{username}/{session_key}")]
-        async fn main_path(web::Path((username, session_key)): web::Path<(String, String)>) -> impl Responder {
-            check_session_key(username, session_key)
-        }
-
-        HttpServer::new(|| App::new().service(main_path)).bind("127.0.0.1:21835")?.run().await
+        rouille::start_server("localhost:21835", move |request| {
+            router!(request,
+            (GET) (/) => {
+                rouille::Response::empty_404()
+            },
+            (GET) (/verify/{incoming_username: String}/{incoming_session_key: String}) => {
+                rouille::Response::text(check_session_key(&self.conn, incoming_username, incoming_session_key))
+            },
+            _ => rouille::Response::empty_404()
+            )
+        });
     }
-
-
-    fn check_session_key(&self, incoming_username: String, incoming_session_key: String) -> String {
-        use crate::schema::users::dsl::{users, username, session_key};
-        use crate::models::User;
-
-        let user: User = match users.filter(username.like(incoming_username)).first::<User>(&self.conn) {
-            Err(err) => {
-                return String::from("0");
-            }
-            Ok(x) => x,
-        };
-
-        if user.session_key == incoming_session_key { return String::from("1"); }
-
-        return String::from("0");
-    }
-
 }
 
+fn check_session_key(conn: &SqliteConnection, incoming_username: String, incoming_session_key: String) -> String {
+    use crate::schema::users::dsl::{users, username};
+    use crate::models::User;
+    use crate::diesel::RunQueryDsl;
+
+    let mut result: String = String::from("0");
+
+    let user: User = match users.filter(username.like(String::from(incoming_username))).first::<User>(conn) {
+        Err(_) => {
+            return result;
+        }
+        Ok(x) => x,
+    };
+
+    if user.session_key == incoming_session_key { result = String::from("1") }
+
+    return result;
+}
