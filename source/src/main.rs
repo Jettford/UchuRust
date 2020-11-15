@@ -21,9 +21,7 @@ use diesel::{SqliteConnection, Connection};
 /// Runs the server.
 fn main() {
 	let master_thread = thread::spawn(move || {
-		let master: MasterServer = MasterServer {
-			conn: SqliteConnection::establish(load_config().db.path[..].into()).unwrap()
-		};
+		let master: MasterServer = MasterServer {};
 		master.start();
 	});
 

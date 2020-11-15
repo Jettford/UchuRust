@@ -5,23 +5,26 @@ pub(crate) mod server_mode;
 use rouille::*;
 
 use crate::utils::log;
-use diesel::{QueryDsl, TextExpressionMethods, SqliteConnection};
+use diesel::{QueryDsl, TextExpressionMethods, SqliteConnection, Connection};
+use diesel::sqlite::Sqlite;
 
 pub struct MasterServer {
-    pub(crate) conn: SqliteConnection,
+
 }
 
 impl MasterServer {
     pub fn start(&self) -> std::io::Result<()> {
         log("Master", "Started master server");
 
-        rouille::start_server("localhost:21835", move |request| {
+        use base_server::load_config;
+
+        rouille::start_server("localhost:21835",  |request| {
             router!(request,
             (GET) (/) => {
                 rouille::Response::empty_404()
             },
             (GET) (/verify/{incoming_username: String}/{incoming_session_key: String}) => {
-                rouille::Response::text(check_session_key(&self.conn, incoming_username, incoming_session_key))
+                rouille::Response::text(check_session_key(&SqliteConnection::establish(load_config().db.path[..].into()).unwrap(), incoming_username, incoming_session_key))
             },
             _ => rouille::Response::empty_404()
             )
