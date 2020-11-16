@@ -3,6 +3,7 @@ table! {
         id -> Integer,
         username -> Text,
         name -> Text,
+        custom_name -> Text,
         torso_color -> Integer,
         legs_color -> Integer,
         hair_style -> Integer,
@@ -24,3 +25,8 @@ table! {
         session_key -> Text,
     }
 }
+
+allow_tables_to_appear_in_same_query!(
+    characters,
+    users,
+);

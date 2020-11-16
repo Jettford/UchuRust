@@ -2,5 +2,7 @@
 
 members = [
     "source",
-    "libraries/base_server"
+    "libraries/base_server",
+    "libraries/lu_files",
+    "libraries/lu_packets"
 ]

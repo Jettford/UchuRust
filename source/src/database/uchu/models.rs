@@ -1,7 +1,7 @@
 //! Database models.
 use diesel::{Insertable, Queryable};
 
-use crate::schema::characters;
+use crate::database::uchu::schema::characters;
 
 #[derive(Debug)]
 #[derive(Queryable)]
@@ -13,6 +13,8 @@ pub struct Character {
 	pub username: String,
 	/// Name of the character.
 	pub name: String,
+	/// Custom name of the character.
+	pub custom_name: String,
 	/// Torso color.
 	pub torso_color: i32,
 	/// Legs color.

@@ -1,12 +1,15 @@
 pub(crate) mod server_mode;
 
 #[macro_use]
-
 use rouille::*;
 
-use crate::utils::log;
 use diesel::{QueryDsl, TextExpressionMethods, SqliteConnection, Connection};
 use diesel::sqlite::Sqlite;
+
+use crate::utils::log;
+
+use std::net::SocketAddr;
+use std::collections::HashMap;
 
 pub struct MasterServer {
 
@@ -26,6 +29,12 @@ impl MasterServer {
             (GET) (/verify/{incoming_username: String}/{incoming_session_key: String}) => {
                 rouille::Response::text(check_session_key(&SqliteConnection::establish(load_config().db.path[..].into()).unwrap(), incoming_username, incoming_session_key))
             },
+            (GET) (/set_session/{address: String}/{session: String}) => {
+                rouille::Response::text("")
+            },
+            (GET) (/get_session/{address: String}) => {
+                rouille::Response::text("")
+            },
             _ => rouille::Response::empty_404()
             )
         });
@@ -33,8 +42,8 @@ impl MasterServer {
 }
 
 fn check_session_key(conn: &SqliteConnection, incoming_username: String, incoming_session_key: String) -> String {
-    use crate::schema::users::dsl::{users, username};
-    use crate::models::User;
+    use crate::database::uchu::schema::users::dsl::{users, username};
+    use crate::database::uchu::models::User;
     use crate::diesel::RunQueryDsl;
 
     let mut result: String = String::from("0");

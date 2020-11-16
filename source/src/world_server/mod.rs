@@ -1,4 +1,6 @@
 mod world_listeners;
+mod replica;
+mod objects;
 
 use base_server::{Config, create_tls_config};
 use base_server::server::Server;

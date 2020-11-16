@@ -12,15 +12,19 @@ use lu_packets::{
 	world::client::{CharListChar, CharacterListResponse, CharacterCreateResponse, CharacterDeleteResponse, InstanceType, LoadStaticZone, Message as OutMessage},
 	world::server::{CharacterCreateRequest, CharacterDeleteRequest, CharacterLoginRequest, ClientValidation, LevelLoadComplete, Message as IncMessage, WorldMessage},
 };
-use lu_packets::common::ServiceId;
+
+use lu_packets::common::{ServiceId, LuVarWString};
+use lu_packets::lnv;
 use base_server::listeners::{on_conn_req, on_internal_ping, on_handshake};
 use base_server::server::Context as C;
 
-use crate::models::Character;
-
+use crate::database::uchu::models::Character;
 use crate::utils::log;
+use crate::world_server::objects::game_objects::GameObject;
+use crate::common_vars::WorldContext;
 
-type Context = C<IncMessage, OutMessage>;
+use lu_packets::world::client::CreateCharacter;
+use lu_packets::world::lnv::{LuNameValue, LnvValue};
 
 pub struct WorldMsgCallback {
 	validated: HashMap<SocketAddr, String>,
@@ -38,7 +42,7 @@ impl WorldMsgCallback {
 	}
 
 	/// Dispatches to the various handlers depending on message type.
-	pub fn on_msg(&mut self, msg: &IncMessage, ctx: &mut Context) {
+	pub fn on_msg(&mut self, msg: &IncMessage, ctx: &mut WorldContext) {
 		use lu_packets::raknet::server::Message::{InternalPing, ConnectionRequest, NewIncomingConnection, UserMessage};
 		use lu_packets::world::server::{
 			LuMessage::{General, World},
@@ -52,11 +56,11 @@ impl WorldMsgCallback {
 			UserMessage(General(Handshake(msg)))      => on_handshake::<IncMessage, OutMessage>(msg, ctx, ServiceId::World),
 			UserMessage(World(ClientValidation(msg))) => self.on_client_val(msg, ctx),
 			UserMessage(World(msg))                   => self.on_restricted_msg(msg, ctx),
-			_                                         => { dbg!("do NOT contact me with unsolicited offers or services"); },
+			_ => { dbg!("do NOT contact me with unsolicited offers or services"); },
 		}
 	}
 
-	fn on_client_val(&mut self, cli_val: &ClientValidation, ctx: &mut Context) {
+	fn on_client_val(&mut self, cli_val: &ClientValidation, ctx: &mut WorldContext) {
 		let username = String::from(&cli_val.username);
 		let session_key = String::from(&cli_val.session_key);
 		let resp = minreq::get(format!("http://{}/verify/{}/{}", self.master_server_url, username, session_key)).send().unwrap();
@@ -72,7 +76,7 @@ impl WorldMsgCallback {
 		self.validated.insert(peer_addr, username);
 	}
 
-	pub fn on_restricted_msg(&self, msg: &WorldMessage, ctx: &mut Context) {
+	pub fn on_restricted_msg(&self, msg: &WorldMessage, ctx: &mut WorldContext) {
 		dbg!(&msg);
 		let username = match self.validated.get(&ctx.peer_addr().unwrap()) {
 			None =>  {
@@ -91,12 +95,12 @@ impl WorldMsgCallback {
 			CharacterLoginRequest(msg)  => self.on_char_login_req(msg, &username, ctx),
 			CharacterDeleteRequest(msg) => self.on_char_del_req(msg, &username, ctx),
 			LevelLoadComplete(msg)      => self.on_level_load_complete(msg, &username, ctx),
-			_                           => { println!("Unrecognized packet: {:?}", msg); },
+			_ => { println!("Unrecognized packet: {:?}", msg); },
 		}
 	}
 
-	fn on_char_list_req(&self, provided_username: &str, ctx: &mut Context) {
-		use crate::schema::characters::dsl::{characters, username};
+	fn on_char_list_req(&self, provided_username: &str, ctx: &mut WorldContext) {
+		use crate::database::uchu::schema::characters::dsl::{characters, username};
 
 		let chars: Vec<Character> = characters
 		.filter(username.eq(provided_username))
@@ -107,7 +111,7 @@ impl WorldMsgCallback {
 			list_chars.push(CharListChar {
 				obj_id: (chara.id as u64) | (1 << 60),
 				char_name: (&*chara.name).try_into().unwrap(),
-				pending_name: "".try_into().unwrap(),
+				pending_name: (&*chara.custom_name).try_into().unwrap(),
 				requires_rename: false,
 				is_free_trial: false,
 				torso_color: chara.torso_color as u32,
@@ -128,13 +132,14 @@ impl WorldMsgCallback {
 		}).unwrap()
 	}
 
-	fn on_char_create_req(&self, msg: &CharacterCreateRequest, username: &str, ctx: &mut Context) {
-		use crate::schema::characters::dsl::{characters};
+	fn on_char_create_req(&self, msg: &CharacterCreateRequest, username: &str, ctx: &mut WorldContext) {
+		use crate::database::uchu::schema::characters::dsl::{characters};
 
 		let new_char = Character {
 			id: 0, // good id
 			username: username.to_string(),
 			name: String::from(&msg.char_name),
+			custom_name: String::from(&msg.char_name),
 			torso_color: msg.torso_color as i32,
 			legs_color: msg.legs_color as i32,
 			hair_style: msg.hair_style as i32,
@@ -142,7 +147,7 @@ impl WorldMsgCallback {
 			eyebrow_style: msg.eyebrow_style as i32,
 			eye_style: msg.eye_style as i32,
 			mouth_style: msg.mouth_style as i32,
-			world_zone: 0,
+			world_zone: 1000,
 			world_instance: 0,
 			world_clone: 0,
 		};
@@ -159,7 +164,7 @@ impl WorldMsgCallback {
 		self.on_char_list_req(username, ctx);
 	}
 
-	fn on_char_login_req(&self, _msg: &CharacterLoginRequest, _username: &str, ctx: &mut Context) {
+	fn on_char_login_req(&self, _msg: &CharacterLoginRequest, _username: &str, ctx: &mut WorldContext) {
 		let lsz = LoadStaticZone {
 			zone_id: ZoneId { map_id: 1000, instance_id: 0, clone_id: 0 },
 			map_checksum: 0x20b8087c,
@@ -170,8 +175,8 @@ impl WorldMsgCallback {
 		ctx.send(lsz).unwrap();
 	}
 
-	fn on_char_del_req(&self, msg: &CharacterDeleteRequest, provided_username: &str, ctx: &mut Context) {
-		use crate::schema::characters::dsl::{characters, id, username};
+	fn on_char_del_req(&self, msg: &CharacterDeleteRequest, provided_username: &str, ctx: &mut WorldContext) {
+		use crate::database::uchu::schema::characters::dsl::{characters, id, username};
 
 		let success = delete(characters
 		.filter(username.eq(provided_username))
@@ -185,8 +190,28 @@ impl WorldMsgCallback {
 		ctx.send(CharacterDeleteResponse { success }).unwrap();
 	}
 
-	fn on_level_load_complete(&self, _msg: &LevelLoadComplete, _username: &str, _ctx: &mut Context) {
-		// just dab for now
-		dbg!("dab");
+	fn on_level_load_complete(&self, _msg: &LevelLoadComplete, _username: &str, _ctx: &mut WorldContext) {
+		use crate::database::uchu::schema::characters::dsl::{characters, username};
+
+		let chars: Vec<Character> = characters.filter(username.eq(_username)).load(&self.conn).unwrap();
+
+		let character_create = CreateCharacter {
+			data: lnv! {
+				"template": (1 as i32),
+				"objid": (0 as u64) | (1 << 60),
+			}
+		};
+
+		_ctx.send(character_create).unwrap();
+
+		// Construct character
+
+		let char: GameObject = GameObject {
+			object_id: (0 as i64) | (1 << 60),
+			lot: 1,
+			name: "".to_string()
+		};
+		char.construct(_ctx);
+
 	}
 }

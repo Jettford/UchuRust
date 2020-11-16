@@ -15,7 +15,8 @@ repository = "https://github.com/lcdr/world_server/"
 # Global Dependencies
 libsqlite3-sys = { version = "0.9.1", features = ["bundled"] }
 diesel = { version = "1.4.3", features = ["sqlite"] }
-lu_packets = { git = "https://github.com/lcdr/lu_packets", rev = "f11fdd7d50109602f7abdeacf78452376b9adbde" }
+lu_packets = { path = "../libraries/lu_packets" }
+lu_packets_derive = { path = "../libraries/lu_packets/lu_packets_derive" }
 base_server = { path = "../libraries/base_server", features = [] }
 minreq = { version = "2.1.1", features = [] }
 
@@ -24,3 +25,8 @@ rouille = "3.0.0"
 
 # Auth Dependencies
 bcrypt = "0.6"
+
+# World Dependencies
+endio = { git = "https://github.com/lcdr/endio", rev = "9981948f5cb6d78dba3c5115d1f3459918a64133" }
+endio_bit = { git = "https://github.com/lcdr/endio_bit", rev = "46b1b0eda359dd85b5eabf9714e839c3728c75af" }
+byteorder = "1.3.4"

@@ -1,7 +1,8 @@
 create table characters (
-  id integer not null primary key,
-  username text not null,
+    id integer not null primary key,
+    username text not null,
 	name text unique not null,
+	custom_name text unique not null,
 	torso_color integer not null,
 	legs_color integer not null,
 	hair_style integer not null,

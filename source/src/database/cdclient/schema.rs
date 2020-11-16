@@ -1,0 +1,32 @@
+table! {
+    ZoneTable (efId) {
+        efId -> Integer,
+        zoneID -> Integer,
+        locStatus -> Integer,
+        zoneName -> Text,
+        scriptID -> Integer,
+        ghostdistance_min -> Double,
+        ghostdistance -> Double,
+        population_soft_cap -> Integer,
+        population_hard_cap -> Integer,
+        DisplayDescription -> Text,
+        mapFolder -> Text,
+        smashableMinDistance -> Double,
+        smashableMaxDistance -> Double,
+        mixerProgram -> Text,
+        clientPhysicsFramerate -> Text,
+        serverPhysicsFramerate -> Text,
+        zoneControlTemplate -> Integer,
+        widthInChunks -> Integer,
+        heightInChunks -> Integer,
+        petsAllowed -> Integer,
+        localize -> Integer,
+        fZoneWeight -> Double,
+        thumbnail -> Text,
+        PlayerLoseCoinsOnDeath -> Integer,
+        disableSaveLoc -> Integer,
+        teamRadius -> Double,
+        gate_version -> Text,
+        mountsAllowed -> Integer
+    }
+}

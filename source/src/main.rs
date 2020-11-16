@@ -3,11 +3,12 @@
 extern crate diesel;
 
 mod world_server;
-mod models;
-mod schema;
 mod auth_server;
 mod utils;
 mod master_server;
+mod internal_structs;
+mod common_vars;
+mod database;
 
 use base_server::load_config;
 

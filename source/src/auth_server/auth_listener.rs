@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use base_server::listeners::{on_conn_req, on_internal_ping, on_handshake};
 use base_server::server::Context as C;
 
-use crate::models::User;
+use crate::database::uchu::models::User;
 
 use lu_packets::common::{ServiceId, LuWString33, LuString33};
 use lu_packets::auth::{
@@ -47,7 +47,7 @@ impl AuthMsgCallback {
     }
 
     pub fn on_login_request(&self, event: &LoginRequest, ctx: &mut Context) {
-        use crate::schema::users::dsl::{users, username, session_key};
+        use crate::database::uchu::schema::users::dsl::{users, username, session_key};
 
         let user: User = match users.filter(username.like(String::from(&event.username))).first::<User>(&self.conn) {
             Err(err) => {
