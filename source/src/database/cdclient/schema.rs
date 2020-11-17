@@ -1,4 +1,4 @@
-table! {
+/*table! {
     ZoneTable (efId) {
         efId -> Integer,
         zoneID -> Integer,
@@ -29,4 +29,4 @@ table! {
         gate_version -> Text,
         mountsAllowed -> Integer
     }
-}
+}*/

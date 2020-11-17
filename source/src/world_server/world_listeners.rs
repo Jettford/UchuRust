@@ -209,7 +209,7 @@ impl WorldMsgCallback {
 		let char: GameObject = GameObject {
 			object_id: (0 as i64) | (1 << 60),
 			lot: 1,
-			name: "".to_string()
+			name: "Test".to_string()
 		};
 		char.construct(_ctx);
 	}

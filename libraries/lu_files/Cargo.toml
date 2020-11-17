@@ -1,0 +1,7 @@
+[package]
+name = "lu_files"
+version = "0.1.0"
+authors = ["Jettford"]
+edition = "2018"
+
+[dependencies]

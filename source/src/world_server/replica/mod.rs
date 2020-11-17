@@ -7,6 +7,7 @@ use byteorder::{WriteBytesExt, LittleEndian};
 
 use lu_packets::common::LuWStr;
 use endio_bit::{LEBitWriter, BitWriter};
+use std::fs::File;
 
 pub struct ConstructObject {
     pub network_id: u16,
@@ -68,7 +69,7 @@ impl ConstructObject {
         bit_writer.write_bit(false).unwrap();
         bit_writer.write_bit(false).unwrap();
 
-        bit_writer.align();
+        //bit_writer.align();
 
         let data: &Vec<u8> = bit_writer.get_mut();
 
