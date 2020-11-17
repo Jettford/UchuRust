@@ -15,8 +15,8 @@ impl GameObject {
     pub fn construct(&self, mut ctx: &mut WorldContext) {
         let mut vector: Vec<u16> = self.name.encode_utf16().collect();
 
-        ctx.send(ConstructObject {
-            network_id: (0 as u16),
+        let cc = ConstructObject {
+            network_id: (1 as u16),
             is_construction: true,
             object_id: self.object_id,
             lot: self.lot,
@@ -28,6 +28,8 @@ impl GameObject {
             spawner_node_id: 0,
             object_scale: 0.0,
             object_world_state: 0,
-        }).unwrap();
+        };
+
+        ctx.send_raw(cc.serialize().as_slice());
     }
 }

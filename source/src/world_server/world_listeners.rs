@@ -166,8 +166,8 @@ impl WorldMsgCallback {
 
 	fn on_char_login_req(&self, _msg: &CharacterLoginRequest, _username: &str, ctx: &mut WorldContext) {
 		let lsz = LoadStaticZone {
-			zone_id: ZoneId { map_id: 1000, instance_id: 0, clone_id: 0 },
-			map_checksum: 0x20b8087c,
+			zone_id: ZoneId { map_id: 1100, instance_id: 0, clone_id: 0 },
+			map_checksum: 0x49525511,
 			player_position: Vector3::ZERO,
 			instance_type: InstanceType::Public,
 		};
@@ -212,6 +212,5 @@ impl WorldMsgCallback {
 			name: "".to_string()
 		};
 		char.construct(_ctx);
-
 	}
 }
