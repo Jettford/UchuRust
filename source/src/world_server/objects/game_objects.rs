@@ -30,6 +30,8 @@ impl GameObject {
             object_world_state: 0,
         };
 
-        ctx.send_raw(cc.serialize().as_slice());
+        crate::utils::write_packet(String::from("test2.bin"), cc.serialize().as_slice());
+
+        //ctx.send_raw(cc.serialize().as_slice());
     }
 }

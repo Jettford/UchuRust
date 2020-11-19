@@ -28,6 +28,8 @@ impl ConstructObject {
     pub fn serialize(self) -> Vec<u8> {
         let mut bit_writer = ::endio_bit::LEBitWriter::new(vec![]);
 
+        bit_writer.write_u8(0x24).unwrap();
+
         bit_writer.write_bit(true).unwrap();
         bit_writer.write_u16::<LittleEndian>(self.network_id).unwrap();
 
@@ -69,9 +71,7 @@ impl ConstructObject {
         bit_writer.write_bit(false).unwrap();
         bit_writer.write_bit(false).unwrap();
 
-        //bit_writer.align();
-
-        let data: &Vec<u8> = bit_writer.get_mut();
+        let data: &Vec<u8> = unsafe { bit_writer.get_mut_unchecked() };
 
         data.clone()
     }
