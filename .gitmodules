@@ -1,6 +1,6 @@
 [submodule "libraries/base_server"]
 	path = libraries/base_server
-	url = https://github.com/lcdr/base_server
+	url = https://github.com/Jettford/base_server
 [submodule "libraries/lu_packets"]
 	path = libraries/lu_packets
 	url = https://github.com/Jettford/lu_packets
