@@ -23,15 +23,9 @@ impl GameObject {
             name_length: vector.len() as u8,
             name: vector,
             time_since_created_on_server: 0,
-            has_trigger: false,
-            trigger_object_id: 0,
-            spawner_node_id: 0,
-            object_scale: 0.0,
-            object_world_state: 0,
         };
 
-        crate::utils::write_packet(String::from("test2.bin"), cc.serialize().as_slice());
-
-        //ctx.send_raw(cc.serialize().as_slice());
+        ctx.send_raw(cc.serialize().as_slice());
     }
 }
+

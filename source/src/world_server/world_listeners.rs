@@ -6,6 +6,10 @@ use std::net::SocketAddr;
 use diesel::prelude::*;
 use diesel::dsl::{delete, insert_into};
 
+use lu_packets::lnv;
+use lu_packets::common::{ServiceId, LuVarWString};
+use lu_packets::world::client::CreateCharacter;
+use lu_packets::world::lnv::{LuNameValue, LnvValue};
 use lu_packets::{
 	general::client::DisconnectNotify,
 	world::{Vector3, ZoneId},
@@ -13,8 +17,6 @@ use lu_packets::{
 	world::server::{CharacterCreateRequest, CharacterDeleteRequest, CharacterLoginRequest, ClientValidation, LevelLoadComplete, Message as IncMessage, WorldMessage},
 };
 
-use lu_packets::common::{ServiceId, LuVarWString};
-use lu_packets::lnv;
 use base_server::listeners::{on_conn_req, on_internal_ping, on_handshake};
 use base_server::server::Context as C;
 
@@ -23,8 +25,12 @@ use crate::utils::log;
 use crate::world_server::objects::game_objects::GameObject;
 use crate::common_vars::WorldContext;
 
-use lu_packets::world::client::CreateCharacter;
-use lu_packets::world::lnv::{LuNameValue, LnvValue};
+use lu_packets::world::gm::client::GameMessage;
+use lu_packets::world::gm::client::GameMessage::*;
+use lu_packets::world::gm::client::SubjectGameMessage as ClientSubjectGameMessage;
+
+use lu_packets::world::gm::server::GameMessage::*;
+use lu_packets::world::gm::server::SubjectGameMessage as ServerSubjectGameMessage;
 
 pub struct WorldMsgCallback {
 	validated: HashMap<SocketAddr, String>,
@@ -52,7 +58,7 @@ impl WorldMsgCallback {
 		match msg {
 			InternalPing(msg)                         => on_internal_ping::<IncMessage, OutMessage>(msg, ctx),
 			ConnectionRequest(msg)                    => on_conn_req::<IncMessage, OutMessage>(msg, ctx),
-			NewIncomingConnection(msg)                => { log("World", "New incoming connection") },
+			NewIncomingConnection(_)                => { log("World", "New incoming connection") },
 			UserMessage(General(Handshake(msg)))      => on_handshake::<IncMessage, OutMessage>(msg, ctx, ServiceId::World),
 			UserMessage(World(ClientValidation(msg))) => self.on_client_val(msg, ctx),
 			UserMessage(World(msg))                   => self.on_restricted_msg(msg, ctx),
@@ -77,10 +83,9 @@ impl WorldMsgCallback {
 	}
 
 	pub fn on_restricted_msg(&self, msg: &WorldMessage, ctx: &mut WorldContext) {
-		dbg!(&msg);
 		let username = match self.validated.get(&ctx.peer_addr().unwrap()) {
 			None =>  {
-				println!("Restricted packet from unvalidated client!");
+				log("World", "Restricted packet from unvalidated client!");
 				ctx.send(DisconnectNotify::InvalidSessionKey).unwrap();
 				ctx.close_conn();
 				return;
@@ -95,7 +100,8 @@ impl WorldMsgCallback {
 			CharacterLoginRequest(msg)  => self.on_char_login_req(msg, &username, ctx),
 			CharacterDeleteRequest(msg) => self.on_char_del_req(msg, &username, ctx),
 			LevelLoadComplete(msg)      => self.on_level_load_complete(msg, &username, ctx),
-			_ => { println!("Unrecognized packet: {:?}", msg); },
+			SubjectGameMessage(msg) => self.on_subject_game_message(msg, ctx),
+			_ => { log("World", format!("Unrecognized packet: {:?}", msg).as_str()); },
 		}
 	}
 
@@ -193,8 +199,6 @@ impl WorldMsgCallback {
 	fn on_level_load_complete(&self, _msg: &LevelLoadComplete, _username: &str, _ctx: &mut WorldContext) {
 		use crate::database::uchu::schema::characters::dsl::{characters, username};
 
-		let chars: Vec<Character> = characters.filter(username.eq(_username)).load(&self.conn).unwrap();
-
 		let character_create = CreateCharacter {
 			data: lnv! {
 				"template": (1 as i32),
@@ -209,8 +213,27 @@ impl WorldMsgCallback {
 		let char: GameObject = GameObject {
 			object_id: (0 as i64) | (1 << 60),
 			lot: 1,
-			name: "Test".to_string()
+			name: "".to_string()
 		};
 		char.construct(_ctx);
+	}
+
+
+
+	fn on_subject_game_message(&self, msg: &ServerSubjectGameMessage, ctx: &mut WorldContext) {
+		match &msg.message {
+			ReadyForUpdates(gm) => {
+
+				println!("{}", msg.subject_id);
+				println!("{}", gm.object_id as u64);
+				ctx.send(ClientSubjectGameMessage { subject_id: gm.object_id as u64, message: GameMessage::ServerDoneLoadingAllObjects });
+				ctx.send(ClientSubjectGameMessage { subject_id: gm.object_id as u64, message: GameMessage::PlayerReady });
+			},
+			ModifyGhostingDistance(gm) => {
+
+			}
+
+			_ => { log("World", format!("Unrecognized packet: {:?}", msg).as_str()); }
+		}
 	}
 }

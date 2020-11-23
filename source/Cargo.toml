@@ -1,10 +1,10 @@
 [package]
 name = "Uchu"
 version = "0.1.0"
-authors = ["lcdr"]
+authors = ["lcdr", "Jettford"]
 edition = "2018"
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/lcdr/world_server/"
+repository = "https://github.com/Jettford/UchuRust/"
 
 # This was started with the source made by lcdr
 # You can find that here https://github.com/lcdr/world_server/
